@@ -1,0 +1,84 @@
+-- Crear la base de datos
+CREATE DATABASE BD_Hospital;
+GO
+
+-- Usar la base de datos
+USE BD_Hospital;
+GO
+
+-- Crear la tabla Distrito
+CREATE TABLE Distrito (
+    IDE_DIS INT PRIMARY KEY,
+    DES_DIS VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Crear la tabla Paciente
+CREATE TABLE Paciente (
+    IDE_PAC INT PRIMARY KEY,
+    NOM_PAC VARCHAR(50) NOT NULL,
+    PAT_PAC VARCHAR(50) NOT NULL,
+    MAT_PAC VARCHAR(50) NOT NULL,
+    FNA_PAC DATE NOT NULL,
+    FON_PAC VARCHAR(15),
+    IDE_DIS INT NOT NULL,
+    FOREIGN KEY (IDE_DIS) REFERENCES Distrito(IDE_DIS)
+);
+
+-- Crear la tabla Receta
+CREATE TABLE Receta (
+    NUM_REC INT PRIMARY KEY,
+    FEC_REC DATE NOT NULL,
+    IND_REC TEXT NOT NULL,
+    DES_REC INT NOT NULL,
+    IDE_PAC INT NOT NULL,
+    IDE_DOC INT NOT NULL,
+    FOREIGN KEY (IDE_PAC) REFERENCES Paciente(IDE_PAC)
+);
+
+-- Consulta para mostrar los pacientes con recetas en 2024 y cuyos nombres comiencen con "J" o "G"
+SELECT *
+FROM Paciente P
+JOIN Receta R ON P.IDE_PAC = R.IDE_PAC
+WHERE YEAR(R.FEC_REC) = 2024
+  AND (P.NOM_PAC LIKE 'J%' OR P.NOM_PAC LIKE 'G%');
+
+-- Subconsulta para mostrar pacientes atendidos con receta "Paracetamol" y que pertenecen a los distritos "Rímac", "Breña" y "SJM"
+SELECT P.*
+FROM Paciente P
+JOIN Distrito D ON P.IDE_DIS = D.IDE_DIS
+WHERE D.DES_DIS IN ('Rímac', 'Breña', 'SJM')
+  AND P.IDE_PAC IN (
+      SELECT R.IDE_PAC
+      FROM Receta R
+      WHERE R.IND_REC LIKE '%Paracetamol%'
+  );
+
+-- Procedimiento almacenado para ingresar una nueva receta
+CREATE PROCEDURE sp_Receta (
+    @NUM_REC INT,
+    @FEC_REC DATE,
+    @IND_REC TEXT,
+    @DES_REC INT,
+    @IDE_PAC INT,
+    @IDE_DOC INT
+)
+AS
+BEGIN
+    INSERT INTO Receta (NUM_REC, FEC_REC, IND_REC, DES_REC, IDE_PAC, IDE_DOC)
+    VALUES (@NUM_REC, @FEC_REC, @IND_REC, @DES_REC, @IDE_PAC, @IDE_DOC);
+END;
+GO
+
+-- Procedimiento almacenado para modificar fecha de nacimiento y teléfono de un paciente
+CREATE PROCEDURE sp_ModificaPaciente (
+    @IDE_PAC INT,
+    @FNA_PAC DATE,
+    @FON_PAC VARCHAR(15)
+)
+AS
+BEGIN
+    UPDATE Paciente
+    SET FNA_PAC = @FNA_PAC, FON_PAC = @FON_PAC
+    WHERE IDE_PAC = @IDE_PAC;
+END;
+GO
